@@ -95,7 +95,8 @@ def send_to_google_sheet():
         return
 
     # 구글 Apps Script 웹 앱 URL
-    WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwzWqmw6aLnuUApsCAj1InAay7P65QB32weywJnaTdlAdLm9djvI71EEB0sM1xB_dfnOw/exec"
+    # WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwzWqmw6aLnuUApsCAj1InAay7P65QB32weywJnaTdlAdLm9djvI71EEB0sM1xB_dfnOw/exec"
+    WEB_APP_URL = "https://script.google.com/macros/s/AKfycbx1z5QOyaMkfQKwtrB8KME9Ot9EDtzUOkSFVPqlxx56mwHSlIBnmynEZc5wbn7m6kmNjw/exec"
 
     try:
         response = requests.post(
