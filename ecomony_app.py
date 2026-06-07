@@ -93,25 +93,8 @@ def send_to_google_sheet():
         )
         if response.status_code == 200:
             print("✅ 구글 스프레드시트 자동 업데이트 성공!")
-        # else:
-        #     print(f"❌ 전송 실패 (오류 코드: {response.status_code})")
-        # # 기존 맨 아래 else 구문을 이렇게 변경해 보세요!
         else:
-            st.warning("⚠️ 아직 대시보드에 표시할 누적 데이터가 없습니다.")
-            
-            st.info("""
-            **💡 대시보드가 비어 있는 이유 및 해결 방법:**
-            1. 본 시스템은 **매일 저녁 21시(KST)**에 글로벌 경제 지표를 자동으로 수집하여 구글 시트에 적재합니다.
-            2. 아직 저녁 21시가 되지 않아 구글 스프레드시트에 데이터가 한 줄도 없는 상태입니다.
-            3. **즉시 확인하고 싶다면:** GitHub Repository의 **Actions** 탭에서 **Run workflow**를 수동으로 한 번 실행해 주시면 즉시 첫 데이터가 쌓여 대시보드가 활성화됩니다!
-            """)
-            
-            # 데이터 양식 샘플 구조라도 미리 보여주기
-            st.subheader("📋 모니터링 예정인 18개 경제 지표 항목")
-            st.write(pd.DataFrame(columns=COLUMNS_LIST))
-            except Exception as e:
-                print(f"❌ 연결 오류: {str(e)}")
-
+            print(f"❌ 전송 실패 (오류 코드: {response.status_code})")
 
 if __name__ == "__main__":
     send_to_google_sheet()
