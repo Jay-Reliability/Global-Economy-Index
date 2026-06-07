@@ -1,0 +1,27 @@
+name: Daily Economy Data Collector
+
+on:
+  schedule:
+    # UTC 기준 12:00 = 한국 시간(KST) 21:00 정각 실행
+    - cron: '0 12 * * *'
+  workflow_dispatch: # 수동으로 즉시 실행하고 싶을 때를 위한 버튼 활성화
+
+jobs:
+  collect_and_send:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install Dependencies
+      run: |
+        pip install -r requirements.txt
+
+    - name: Run Data Collection
+      run: |
+        python collector.py
