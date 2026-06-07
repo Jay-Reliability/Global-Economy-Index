@@ -17,7 +17,7 @@ READ_URL = f"https://docs.google.com/spreadsheets/d/{NEW_SHEET_ID}/gviz/tq?tqx=o
 
 st.set_page_config(page_title="Global Economy Index", layout="wide")
 st.title("🌐 Global Economy Index Dashboard")
-st.markdown("매일 21시 자동으로 수집된 글로벌 주요 경제 지표를 실시간 모니터링합니다.")
+st.markdown("매일 19시 자동으로 수집된 글로벌 주요 경제 지표를 실시간 모니터링합니다.")
 st.markdown("---")
 
 # 18개 컬럼 양식 표준화 정의
