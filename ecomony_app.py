@@ -151,5 +151,5 @@ if not data.empty and len(data) > 0:
         st.dataframe(data, use_container_width=True)
 else:
     st.info(
-        "데이터를 가져오는 중이거나 구글 시트에 데이터가 비어있습니다. 매일 밤 21시 스케줄러가 첫 데이터를 전송하면 대시보드가 활성화됩니다."
+        "데이터를 가져오는 중이거나 구글 시트에 데이터가 비어있습니다. 매일 밤 7시 스케줄러가 첫 데이터를 전송하면 대시보드가 활성화됩니다."
     )
