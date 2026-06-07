@@ -10,7 +10,6 @@ import streamlit as st
 # =================================================================
 WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwzWqmw6aLnuUApsCAj1InAay7P65QB32weywJnaTdlAdLm9djvI71EEB0sM1xB_dfnOw/exec"
 
-# 제공해주신 새 시트 ID 반영 완료
 NEW_SHEET_ID = "1_F0_agopnMOKkKiJgWQEr68fVDFdXKt1pCjcTSBVgm4"
 READ_URL = f"https://docs.google.com/spreadsheets/d/{NEW_SHEET_ID}/gviz/tq?tqx=out:csv"
 # =================================================================
@@ -73,8 +72,20 @@ if not data.empty and len(data) > 0:
     kpi1, kpi2, kpi3, kpi4 = st.columns(4)
     kpi1.metric(label="💵 원/달러 환율", value=f"{latest['USD-KRW 환율']:,} 원")
     kpi2.metric(label="🛢️ 미국 WTI 유가", value=f"${latest['미국 WTI 유가']:,}")
-    kpi3.metric(label="📉 장단기금리차(US)", value=f"{latest['장단기금리차(US']}%")
-    kpi4.metric(label="🪙 비트코인(KRW)", value=f"{latest['비트코인(KRW)'] / 10000:,.1f} 만원")
+
+    # 💡 [보정 완료] '장단기금리차(US)'의 오타(닫는 괄호 누락)를 수정했습니다.
+    kpi3.metric(
+        label="📉 장단기금리차(US)", value=f"{latest['장단기금리차(US)']}%"
+    )
+
+    # 숫자가 들어올 경우 대비하여 포맷팅 안전성 강화
+    btc_val = latest["비트코인(KRW)"]
+    try:
+        btc_display = f"{float(btc_val) / 10000:,.1f} 만원"
+    except:
+        btc_display = f"{btc_val} 원"
+
+    kpi4.metric(label="🪙 비트코인(KRW)", value=btc_display)
 
     st.markdown("---")
 
@@ -146,10 +157,8 @@ if not data.empty and len(data) > 0:
         )
         st.plotly_chart(fig_crypto, use_container_width=True)
 
-    # 전제 데이터 테이블
+    # 전체 데이터 테이블
     with st.expander("📊 18개 경제지표 전체 기록 데이터 확인"):
         st.dataframe(data, use_container_width=True)
 else:
-    st.info(
-        "데이터를 가져오는 중이거나 구글 시트에 데이터가 비어있습니다. 매일 밤 7시 스케줄러가 첫 데이터를 전송하면 대시보드가 활성화됩니다."
-    )
+    st.warning("⚠️ 아직 대시보드에 표시할 누적 데이터가 없습니다.")
