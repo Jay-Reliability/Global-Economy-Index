@@ -1,100 +1,155 @@
 import datetime
 import json
+import pandas as pd
+import plotly.express as px
 import requests
-import yfinance as yf
+import streamlit as st
+
+# =================================================================
+# [설정] 구글 스프레드시트 기반 URL 정보
+# =================================================================
+WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwzWqmw6aLnuUApsCAj1InAay7P65QB32weywJnaTdlAdLm9djvI71EEB0sM1xB_dfnOw/exec"
+
+# 제공해주신 새 시트 ID 반영 완료
+NEW_SHEET_ID = "1_F0_agopnMOKkKiJgWQEr68fVDFdXKt1pCjcTSBVgm4"
+READ_URL = f"https://docs.google.com/spreadsheets/d/{NEW_SHEET_ID}/gviz/tq?tqx=out:csv"
+# =================================================================
+
+st.set_page_config(page_title="Global Economy Index", layout="wide")
+st.title("🌐 Global Economy Index Dashboard")
+st.markdown("매일 21시 자동으로 수집된 글로벌 주요 경제 지표를 실시간 모니터링합니다.")
+st.markdown("---")
+
+# 18개 컬럼 양식 표준화 정의
+COLUMNS_LIST = [
+    "Date",
+    "USD-KRW 환율",
+    "JPY-KRW 환율",
+    "CNY-KR 환율",
+    "미국 WTI 유가",
+    "중동 두바이 유가",
+    "단기국채금리(US)",
+    "10년 장기국채금리(US)",
+    "장단기금리차(US)",
+    "단기국채금리(KR)",
+    "10년 장기국채금리(KR)",
+    "장단기금리차(KR)",
+    "Gold(US)",
+    "Gold(KRW)",
+    "비트코인(USD)",
+    "비트코인(KRW)",
+    "이더리움(USD)",
+    "이더리움(KRW)",
+]
 
 
-def get_economy_data():
-    # 1. 기준 날짜 (오늘)
-    today_str = datetime.date.today().strftime("%Y-%m-%d")
-
-    # 2. Yahoo Finance 및 대안 API를 통한 데이터 수집
-    # ⚠️ 주말이나 장 개시 전 데이터 공백을 방지하기 위해 최신 1개 데이터를 가져옵니다.
+@st.cache_data(ttl=5)
+def load_data():
     try:
-        # 환율 (원달러, 원엔, 원위안)
-        usdkrw = yf.Ticker("USDKRW=X").history(period="1d")["Close"].iloc[-1]
-        jpykrw = (
-            yf.Ticker("JPYKRW=X").history(period="1d")["Close"].iloc[-1] * 100
-        )  # 100엔 기준 보정
-        cnykrw = yf.Ticker("CNYKRW=X").history(period="1d")["Close"].iloc[-1]
+        df = pd.read_csv(READ_URL)
+        if df.empty or "Date" not in df.columns:
+            return pd.DataFrame(columns=COLUMNS_LIST)
 
-        # 유가
-        wti = yf.Ticker("CL=F").history(period="1d")["Close"].iloc[-1]
-        dubai = yf.Ticker("BZ=F").history(period="1d")[
-            "Close"
-        ].iloc[-1]  # 브렌트유로 대체하거나 두바이유 제공 API 연동 가능
-
-        # 미국 국채 금리
-        us_3m = (
-            yf.Ticker("^IRX").history(period="1d")["Close"].iloc[-1] / 10
-        )  # 단기(3개월)
-        us_10y = (
-            yf.Ticker("^TNX").history(period="1d")["Close"].iloc[-1] / 10
-        )  # 장기(10년)
-        us_spread = us_10y - us_3m  # 장단기 금리차
-
-        # 한국 국채 금리 (대안 데이터 혹은 고정 샘플링 - yfinance에 한국 국채는 제한적이므로 에러 방지 처리)
-        kr_3m = 3.25  # 실제 운영시 한국은행 API 또는 인베스팅 스크래핑 연동 권장
-        kr_10y = 3.35
-        kr_spread = kr_10y - kr_3m
-
-        # 금 (미국 USD, 한국 KRW)
-        gold_usd = yf.Ticker("GC=F").history(period="1d")["Close"].iloc[-1]
-        gold_krw = gold_usd * usdkrw / 31.1034768  # 트로이온스당 가격을 g당 원화로 환산(예시)
-
-        # 암호화폐 (비트코인, 이더리움)
-        btc_usd = yf.Ticker("BTC-USD").history(period="1d")["Close"].iloc[-1]
-        btc_krw = btc_usd * usdkrw
-        eth_usd = yf.Ticker("ETH-USD").history(period="1d")["Close"].iloc[-1]
-        eth_krw = eth_usd * usdkrw
-
-        # 18개 컬럼 순서대로 딕셔너리 매핑
-        payload = {
-            "Date": today_str,
-            "USD_KRW": float(round(usdkrw, 2)),
-            "JPY_KRW": float(round(jpykrw, 2)),
-            "CNY_KRW": float(round(cnykrw, 2)),
-            "WTI": float(round(wti, 2)),
-            "DUBAI": float(round(dubai, 2)),
-            "US_3M": float(round(us_3m, 2)),
-            "US_10Y": float(round(us_10y, 2)),
-            "US_SPREAD": float(round(us_spread, 2)),
-            "KR_3M": float(round(kr_3m, 2)),
-            "KR_10Y": float(round(kr_10y, 2)),
-            "KR_SPREAD": float(round(kr_spread, 2)),
-            "GOLD_USD": float(round(gold_usd, 2)),
-            "GOLD_KRW": float(round(gold_krw, 2)),
-            "BTC_USD": float(round(btc_usd, 2)),
-            "BTC_KRW": float(round(btc_krw, 2)),
-            "ETH_USD": float(round(eth_usd, 2)),
-            "ETH_KRW": float(round(eth_krw, 2)),
-        }
-        return payload
+        # 구글 시트 데이터 컬럼 강제 동기화 (18개 항목)
+        df.columns = COLUMNS_LIST
+        return df
     except Exception as e:
-        print(f"데이터 수집 중 오류 발생: {e}")
-        return None
+        st.sidebar.error(f"데이터 로드 실패: {str(e)}")
+        return pd.DataFrame(columns=COLUMNS_LIST)
 
 
-def send_to_google_sheet():
-    # 1단계: 데이터 수집
-    data = get_economy_data()
-    if not data:
-        return
+data = load_data()
 
-    # 구글 Apps Script 웹 앱 URL (Step 2의 URL 사용)
-    WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwzWqmw6aLnuUApsCAj1InAay7P65QB32weywJnaTdlAdLm9djvI71EEB0sM1xB_dfnOw/exec"
+if not data.empty and len(data) > 0:
+    # 데이터 전처리
+    data = data.dropna(subset=["Date"])
+    data["Date"] = pd.to_datetime(data["Date"])
+    data = data.sort_values("Date")
 
-    # 2단계: POST 요청 전송
-    try:
-        response = requests.post(
-            WEB_APP_URL,
-            data=json.dumps(data),
-            headers={"Content-Type": "application/json"},
+    # 최신 지표 요약 (KPI 레이아웃)
+    latest = data.iloc[-1]
+    st.subheader("📍 최신 주요 지표 요약")
+
+    kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+    kpi1.metric(label="💵 원/달러 환율", value=f"{latest['USD-KRW 환율']:,} 원")
+    kpi2.metric(label="🛢️ 미국 WTI 유가", value=f"${latest['미국 WTI 유가']:,}")
+    kpi3.metric(label="📉 장단기금리차(US)", value=f"{latest['장단기금리차(US']}%")
+    kpi4.metric(label="🪙 비트코인(KRW)", value=f"{latest['비트코인(KRW)'] / 10000:,.1f} 만원")
+
+    st.markdown("---")
+
+    # 트렌드 분석 탭 분할
+    st.subheader("📈 부문별 트렌드 분석")
+    tab1, tab2, tab3, tab4 = st.tabs(
+        ["💱 외환 (환율)", "🔥 에너지가/원자재", "🏦 금리 (국채)", "🚀 크립토 (가상자산)"]
+    )
+
+    with tab1:
+        fig_fx = px.line(
+            data,
+            x="Date",
+            y=["USD-KRW 환율", "JPY-KRW 환율", "CNY-KR 환율"],
+            title="주요국 통화 대비 원화 환율 추이",
+            markers=True,
         )
-        if response.status_code == 200:
-            print("✅ 구글 스프레드시트 자동 업데이트 성공!")
-        else:
-            print(f"❌ 전송 실패 (오류 코드: {response.status_code})")
+        st.plotly_chart(fig_fx, use_container_width=True)
 
-if __name__ == "__main__":
-    send_to_google_sheet()
+    with tab2:
+        col_a, col_b = st.columns(2)
+        with col_a:
+            fig_oil = px.line(
+                data,
+                x="Date",
+                y=["미국 WTI 유가", "중동 두바이 유가"],
+                title="국제 유가 추이 ($/배럴)",
+                markers=True,
+            )
+            st.plotly_chart(fig_oil, use_container_width=True)
+        with col_b:
+            fig_gold = px.line(
+                data,
+                x="Date",
+                y=["Gold(US)", "Gold(KRW)"],
+                title="국제/국내 금 시세 추이",
+                markers=True,
+            )
+            st.plotly_chart(fig_gold, use_container_width=True)
+
+    with tab3:
+        col_c, col_d = st.columns(2)
+        with col_c:
+            fig_us_bond = px.line(
+                data,
+                x="Date",
+                y=["단기국채금리(US)", "10년 장기국채금리(US)", "장단기금리차(US)"],
+                title="미국 국채 금리 및 장단기 금리차 추이",
+                markers=True,
+            )
+            st.plotly_chart(fig_us_bond, use_container_width=True)
+        with col_d:
+            fig_kr_bond = px.line(
+                data,
+                x="Date",
+                y=["단기국채금리(KR)", "10년 장기국채금리(KR)", "장단기금리차(KR)"],
+                title="한국 국채 금리 및 장단기 금리차 추이",
+                markers=True,
+            )
+            st.plotly_chart(fig_kr_bond, use_container_width=True)
+
+    with tab4:
+        fig_crypto = px.line(
+            data,
+            x="Date",
+            y=["비트코인(USD)", "이더리움(USD)"],
+            title="주요 가상자산 가격 추이 (USD)",
+            markers=True,
+        )
+        st.plotly_chart(fig_crypto, use_container_width=True)
+
+    # 전제 데이터 테이블
+    with st.expander("📊 18개 경제지표 전체 기록 데이터 확인"):
+        st.dataframe(data, use_container_width=True)
+else:
+    st.info(
+        "데이터를 가져오는 중이거나 구글 시트에 데이터가 비어있습니다. 매일 밤 21시 스케줄러가 첫 데이터를 전송하면 대시보드가 활성화됩니다."
+    )
