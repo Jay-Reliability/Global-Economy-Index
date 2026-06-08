@@ -2,8 +2,8 @@ name: Daily Economy Data Collector
 
 on:
   schedule:
-    # UTC 기준 12:00 = 한국 시간(KST) 21:00 정각 실행
-    - cron: '45 10 * * *'
+    # UTC 기준 12:00 = 한국 시간(KST) 23:45 실행
+    - cron: '30 14 * * 1-5'
   workflow_dispatch: # 수동 실행 버튼 활성화
 
 jobs:
